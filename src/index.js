@@ -7,6 +7,7 @@
 
 import { TaskPlanner } from './planner/index.js';
 import { ExecutionLogger } from './logger/index.js';
+import { DemoRunner } from './demo/index.js';
 import { parseConstraints, detectGoalType, validateGoal } from './utils/parsers.js';
 import dotenv from 'dotenv';
 
@@ -22,7 +23,8 @@ function parseArgs() {
   const parsed = {
     goal: null,
     verbose: false,
-    dryRun: false
+    dryRun: false,
+    demo: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -32,10 +34,36 @@ function parseArgs() {
       parsed.verbose = true;
     } else if (args[i] === '--dry-run') {
       parsed.dryRun = true;
+    } else if (args[i] === '--demo' || args[i] === '-d') {
+      parsed.demo = true;
     }
   }
 
   return parsed;
+}
+
+/**
+ * Run the demo mode with full execution and Walrus storage.
+ * @async
+ * @param {Object} args - Parsed command-line arguments
+ */
+async function runDemoMode(args) {
+  console.log(`\n🎯 Mad Sniper: Demo Mode`);
+  console.log(`   Goal: "${args.goal}"`);
+
+  try {
+    const runner = new DemoRunner({
+      verbose: args.verbose,
+      mockData: true, // Use mock data for demo
+      interactive: false
+    });
+
+    await runner.run(args.goal, { type: 'flight' });
+    process.exit(0);
+  } catch (error) {
+    console.error(`\n❌ Demo failed: ${error.message}`);
+    process.exit(1);
+  }
 }
 
 /**
@@ -62,20 +90,29 @@ async function main() {
 ║                                                                   ║
 ║  Usage:                                                           ║
 ║    node src/index.js --goal "Your goal here"                      ║
+║    node src/index.js --demo --goal "Your goal here"               ║
 ║                                                                   ║
 ║  Examples:                                                        ║
 ║    node src/index.js --goal "Find flights from SFO to JFK"        ║
-║    node src/index.js --goal "Search for hotels in Paris next week"║
+║    node src/index.js --demo --goal "Find flights from SFO to JFK" ║
 ║    npm test                                                       ║
+║    ./demo-flight.sh                                               ║
 ║                                                                   ║
 ║  Options:                                                         ║
 ║    -g, --goal        The goal to accomplish                       ║
+║    -d, --demo        Run in demo mode (full execution + Walrus)  ║
 ║    -v, --verbose     Enable verbose output                        ║
 ║    --dry-run         Plan without executing                       ║
 ║                                                                   ║
 ╚═══════════════════════════════════════════════════════════════════╝
 `);
     process.exit(0);
+  }
+
+  // If demo mode is requested, use DemoRunner
+  if (args.demo) {
+    await runDemoMode(args);
+    return;
   }
 
   console.log(`\n🎯 Mad Sniper: Starting execution`);
@@ -86,7 +123,7 @@ async function main() {
     // Initialize planner and logger
     const planner = new TaskPlanner({
       apiKey: process.env.OPENAI_API_KEY,
-      model: process.env.OPENAI_MODEL || 'zai/glm-4.7'
+      model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
     });
 
     const logger = new ExecutionLogger({

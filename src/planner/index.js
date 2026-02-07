@@ -24,7 +24,7 @@ export class TaskPlanner {
    */
   constructor(options = {}) {
     this.apiKey = options.apiKey || process.env.OPENAI_API_KEY;
-    this.model = options.model || 'zai/glm-4.7';
+    this.model = options.model || process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
 
     if (!this.apiKey) {
       throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable.');

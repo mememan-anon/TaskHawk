@@ -5,8 +5,6 @@
  * Provides multi-strategy element finding and robust error handling.
  */
 
-import { browser } from '../../browser-tool.js';
-
 /**
  * BrowserController class for web automation.
  * Manages browser sessions and executes actions with retry logic.
@@ -27,6 +25,7 @@ export class BrowserController {
     this.verbose = options.verbose || false;
     this.currentTab = null;
     this.isStarted = false;
+    this.browserFn = null; // Will be loaded dynamically
   }
 
   /**
@@ -60,7 +59,17 @@ export class BrowserController {
     this.debug('Starting browser...');
 
     try {
-      const result = await browser({
+      // Try to import browser tool dynamically
+      if (!this.browserFn) {
+        try {
+          const browserModule = await import('../../browser-tool.js');
+          this.browserFn = browserModule.browser;
+        } catch (error) {
+          throw new Error('Browser tool not available in this environment');
+        }
+      }
+
+      const result = await this.browserFn({
         action: 'start',
         profile: this.profile
       });
@@ -96,7 +105,7 @@ export class BrowserController {
     this.debug(`Navigating to: ${url}`);
 
     try {
-      const result = await browser({
+      const result = await this.browserFn({
         action: 'navigate',
         targetUrl: url,
         profile: this.profile,
@@ -135,7 +144,7 @@ export class BrowserController {
     this.debug(`Taking snapshot (refs=${refs}, depth=${depth})`);
 
     try {
-      const result = await browser({
+      const result = await this.browserFn({
         action: 'snapshot',
         profile: this.profile,
         targetId: this.currentTab,
@@ -220,7 +229,7 @@ export class BrowserController {
         }
 
         // Perform click
-        const result = await browser({
+        const result = await this.browserFn({
           action: 'act',
           profile: this.profile,
           targetId: this.currentTab,
@@ -282,7 +291,7 @@ export class BrowserController {
         }
 
         // Perform type action
-        const result = await browser({
+        const result = await this.browserFn({
           action: 'act',
           profile: this.profile,
           targetId: this.currentTab,
@@ -412,7 +421,7 @@ export class BrowserController {
     this.debug('Closing browser...');
 
     try {
-      const result = await browser({
+      const result = await this.browserFn({
         action: 'stop',
         profile: this.profile
       });
