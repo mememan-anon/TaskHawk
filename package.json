@@ -1,0 +1,25 @@
+{
+  "name": "mad-sniper",
+  "version": "0.1.0",
+  "description": "Autonomous Web Task Orchestrator - Plans and executes web-based tasks using LLMs",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node src/index.js --goal 'Find flights from New York to London next week under $500'",
+    "test:integration": "node --test tests/integration.test.js",
+    "test:storage": "node -e \"import('./src/walrus/client.js').then(m => { const c = new m.WalrusClient({verbose: true}); c.testConnectivity().then(r => console.log(JSON.stringify(r, null, 2))); })\""
+  },
+  "keywords": [
+    "automation",
+    "llm",
+    "orchestrator",
+    "web-automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "openai": "^4.20.0",
+    "dotenv": "^16.3.1"
+  }
+}
