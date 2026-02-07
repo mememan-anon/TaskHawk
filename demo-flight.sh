@@ -12,8 +12,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Default goal
-DEFAULT_GOAL="Find cheapest RT flight SFO LHR 3/15-3/22 max $800"
+# Default goal (escaped $ to prevent shell expansion)
+DEFAULT_GOAL='Find cheapest RT flight SFO LHR 3/15-3/22 max $800'
 
 # Use provided goal or default
 GOAL="${1:-$DEFAULT_GOAL}"
@@ -44,6 +44,7 @@ fi
 echo -e "${BLUE}Running demo...${NC}"
 echo ""
 
+# Use single quotes to preserve $ and other special characters in the goal
 node src/demo-cli.js --goal "$GOAL" --verbose
 
 # Capture exit code
