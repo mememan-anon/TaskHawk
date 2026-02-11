@@ -9,6 +9,7 @@ import { TaskPlanner } from '../planner/index.js';
 import { ActionExecutor } from '../executor/index.js';
 import { PersistentLogger } from '../logger/index.js';
 import { parseConstraints, detectGoalType, validateGoal } from '../utils/parsers.js';
+import { searchGoogleFlights } from '../executor/flights-browser.js';
 
 /**
  * FlightDemo class for demonstrating end-to-end flight search.
@@ -145,11 +146,51 @@ export class FlightDemo {
       this.debug('Using mock flight data');
       return await this.executeWithMockData(constraints);
     } else {
-      // Execute with real browser
-      this.debug('Executing with real browser');
-      const result = await this.executor.executeSteps(plan.steps);
-      return result;
+      // Execute with real browser via Puppeteer + Google Flights
+      this.debug('Executing with real browser (Google Flights)');
+      return await this.executeWithRealBrowser(constraints);
     }
+  }
+
+  /**
+   * Execute with real browser automation via Google Flights.
+   * @private
+   * @param {Object} constraints - Search constraints
+   * @returns {Promise<Array>} Array of real flight options
+   */
+  async executeWithRealBrowser(constraints) {
+    const origin = constraints.origin || 'SFO';
+    const destination = constraints.destination || 'JFK';
+    const maxPrice = constraints.maxPrice || null;
+
+    console.log(`   🌐 Launching Chrome browser...`);
+    console.log(`   🔍 Searching Google Flights: ${origin} → ${destination}`);
+
+    const result = await searchGoogleFlights({
+      origin,
+      destination,
+      maxPrice,
+      headless: false,
+      verbose: this.verbose
+    });
+
+    if (!result.success || result.flights.length === 0) {
+      console.log(`   ⚠️  Real search returned no results, falling back to mock data`);
+      return await this.executeWithMockData(constraints);
+    }
+
+    console.log(`   ✓ Found ${result.flights.length} real flights from Google`);
+    if (result.screenshot) {
+      console.log(`   📸 Screenshot: ${result.screenshot}`);
+    }
+
+    this.logger.logStep(
+      { name: 'search_flights_real', type: 'extract' },
+      { totalFound: result.allFlights.length, matchingConstraints: result.flights.length, source: 'google-flights-live' },
+      'success'
+    );
+
+    return result.flights;
   }
 
   /**
@@ -169,28 +210,52 @@ export class FlightDemo {
     const maxPrice = constraints.maxPrice || 1000;
     const timeframe = constraints.timeframe || 'next week';
 
-    // Generate realistic mock flights
-    const basePrices = {
-      'SFO-JFK': [350, 420, 380, 450, 320],
-      'SFO-LAX': [120, 150, 130, 140, 125],
-      'JFK-LHR': [650, 720, 680, 750, 640],
-      'default': [300, 350, 400, 280, 320]
+    // Route-specific realistic pricing, airlines, and durations
+    const routeData = {
+      'SFO-JFK': { prices: [320, 350, 380, 420, 450], duration: '5h 30m', airlines: ['United', 'Delta', 'JetBlue', 'American', 'Alaska'] },
+      'JFK-SFO': { prices: [310, 340, 370, 410, 440], duration: '6h 15m', airlines: ['Delta', 'United', 'JetBlue', 'American', 'Alaska'] },
+      'SFO-LAX': { prices: [89, 110, 125, 140, 155], duration: '1h 25m', airlines: ['Southwest', 'United', 'Delta', 'American', 'JetBlue'] },
+      'LAX-SFO': { prices: [85, 105, 120, 135, 150], duration: '1h 20m', airlines: ['Southwest', 'United', 'Delta', 'American', 'Alaska'] },
+      'JFK-LHR': { prices: [640, 720, 780, 850, 920], duration: '7h 10m', airlines: ['British Airways', 'Virgin Atlantic', 'Delta', 'American', 'United'] },
+      'LHR-JFK': { prices: [620, 700, 760, 830, 900], duration: '8h 20m', airlines: ['British Airways', 'Virgin Atlantic', 'Delta', 'American', 'United'] },
+      'NBO-JFK': { prices: [850, 980, 1050, 1150, 1280], duration: '17h 45m', airlines: ['Kenya Airways', 'Ethiopian', 'Emirates', 'Turkish Airlines', 'Qatar Airways'] },
+      'JFK-NBO': { prices: [830, 960, 1030, 1120, 1250], duration: '16h 30m', airlines: ['Kenya Airways', 'Ethiopian', 'Emirates', 'Turkish Airlines', 'Qatar Airways'] },
+      'NBO-LHR': { prices: [620, 720, 780, 850, 950], duration: '8h 45m', airlines: ['Kenya Airways', 'British Airways', 'Ethiopian', 'Emirates', 'Qatar Airways'] },
+      'LAX-LHR': { prices: [580, 680, 750, 820, 920], duration: '10h 30m', airlines: ['British Airways', 'Virgin Atlantic', 'American', 'Delta', 'United'] },
+      'SFO-NRT': { prices: [750, 850, 920, 1050, 1180], duration: '11h 15m', airlines: ['ANA', 'Japan Airlines', 'United', 'Singapore Airlines', 'Korean Air'] },
+      'JFK-CDG': { prices: [550, 650, 720, 800, 880], duration: '7h 30m', airlines: ['Air France', 'Delta', 'United', 'American', 'Lufthansa'] },
+      'LAX-SYD': { prices: [900, 1050, 1180, 1300, 1450], duration: '15h 30m', airlines: ['Qantas', 'United', 'Delta', 'American', 'Air New Zealand'] },
+      'JFK-DXB': { prices: [720, 850, 950, 1080, 1200], duration: '12h 30m', airlines: ['Emirates', 'Qatar Airways', 'Delta', 'United', 'Etihad'] },
     };
 
+    // Estimate route type for unknown routes
     const routeKey = `${origin}-${destination}`;
-    const prices = basePrices[routeKey] || basePrices['default'];
+    let route = routeData[routeKey];
 
-    const flights = prices.slice(0, 5).map((price, idx) => ({
-      airline: ['United', 'Delta', 'American', 'JetBlue', 'Southwest'][idx],
-      flightNumber: `${['UA', 'DL', 'AA', 'B6', 'WN'][idx]}${1000 + Math.floor(Math.random() * 900)}`,
+    if (!route) {
+      // Detect if route is likely international or domestic based on common airport codes
+      const domesticUS = ['SFO', 'JFK', 'LAX', 'ORD', 'ATL', 'DFW', 'DEN', 'SEA', 'MIA', 'BOS', 'IAH', 'EWR', 'LGA', 'PHX', 'MSP'];
+      const isDomestic = domesticUS.includes(origin) && domesticUS.includes(destination);
+
+      if (isDomestic) {
+        route = { prices: [180, 220, 260, 310, 380], duration: '4h 15m', airlines: ['United', 'Delta', 'American', 'Southwest', 'JetBlue'] };
+      } else {
+        // International — realistic pricing
+        route = { prices: [750, 880, 1020, 1150, 1300], duration: '12h 30m', airlines: ['United', 'Delta', 'Emirates', 'British Airways', 'Lufthansa'] };
+      }
+    }
+
+    const flights = route.prices.slice(0, 5).map((price, idx) => ({
+      airline: route.airlines[idx],
+      flightNumber: `${route.airlines[idx].substring(0, 2).toUpperCase()}${1000 + Math.floor(Math.random() * 900)}`,
       origin,
       destination,
       departureTime: this.generateMockTime(idx),
-      arrivalTime: this.generateMockTime(idx + 5),
+      arrivalTime: this.generateMockTime(idx + parseInt(route.duration)),
       price: price,
-      duration: '5h 30m',
-      stops: Math.random() > 0.7 ? '1 stop' : 'Nonstop',
-      aircraft: ['Boeing 737', 'Airbus A320', 'Boeing 777', 'Airbus A321', 'Boeing 787'][idx]
+      duration: route.duration,
+      stops: idx < 2 ? 'Nonstop' : (idx < 4 ? '1 stop' : '2 stops'),
+      aircraft: ['Boeing 787', 'Airbus A350', 'Boeing 777', 'Airbus A321', 'Boeing 737'][idx]
     }));
 
     // Filter by max price

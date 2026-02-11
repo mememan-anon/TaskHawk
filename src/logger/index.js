@@ -174,7 +174,7 @@ export class ExecutionLogger {
     const summary = this.getSummary();
 
     lines.push(`\n╔═══════════════════════════════════════════════════════════════════╗`);
-    lines.push(`║  MAD SNIPER EXECUTION TRACE                                        ║`);
+    lines.push(`║  TASKHAWK EXECUTION TRACE                                        ║`);
     lines.push(`╠═══════════════════════════════════════════════════════════════════╣`);
     lines.push(`║ Session ID: ${summary.sessionId.padEnd(52)}║`);
     lines.push(`║ Goal: ${summary.goal?.padEnd(57)}║`);

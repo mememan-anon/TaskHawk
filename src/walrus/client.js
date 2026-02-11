@@ -2,8 +2,11 @@
  * Walrus Client Module
  *
  * Client for storing and retrieving data from Walrus decentralized storage.
- * Handles API communication with retry logic and error handling.
+ * Uses the official Walrus HTTP API (publisher for writes, aggregator for reads).
  */
+
+import dotenv from 'dotenv';
+dotenv.config();
 
 /**
  * WalrusClient class for interacting with Walrus storage.
@@ -12,15 +15,22 @@ export class WalrusClient {
   /**
    * Create a new WalrusClient instance.
    * @param {Object} options - Configuration options
-   * @param {string} [options.apiUrl='https://walrus-testnet.aggregator.staging.aws.sui.io/v1/'] - Walrus API URL
+   * @param {string} [options.publisherUrl] - Walrus publisher URL (for storing)
+   * @param {string} [options.aggregatorUrl] - Walrus aggregator URL (for reading)
+   * @param {number} [options.epochs=1] - Number of epochs to store data
    * @param {number} [options.maxRetries=3] - Maximum retry attempts
    * @param {number} [options.retryDelay=1000] - Base retry delay in ms
    * @param {number} [options.timeout=30000] - Request timeout in ms
    * @param {boolean} [options.verbose=false] - Enable verbose logging
    */
   constructor(options = {}) {
-    this.apiUrl = options.apiUrl ||
-      'https://walrus-testnet.aggregator.staging.aws.sui.io/v1/';
+    this.publisherUrl = options.publisherUrl ||
+      process.env.WALRUS_PUBLISHER_URL ||
+      'https://publisher.walrus-testnet.walrus.space';
+    this.aggregatorUrl = options.aggregatorUrl ||
+      process.env.WALRUS_AGGREGATOR_URL ||
+      'https://aggregator.walrus-testnet.walrus.space';
+    this.epochs = options.epochs || 1;
     this.maxRetries = options.maxRetries || 3;
     this.retryDelay = options.retryDelay || 1000;
     this.timeout = options.timeout || 30000;
@@ -30,8 +40,6 @@ export class WalrusClient {
   /**
    * Log debug information if verbose mode is enabled.
    * @private
-   * @param {string} message - Message to log
-   * @param {any} [data] - Optional data to log
    */
   debug(message, data = null) {
     if (this.verbose) {
@@ -46,8 +54,6 @@ export class WalrusClient {
   /**
    * Sleep for a specified duration.
    * @private
-   * @param {number} ms - Milliseconds to sleep
-   * @returns {Promise<void>}
    */
   async sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -56,12 +62,9 @@ export class WalrusClient {
   /**
    * Execute an HTTP request with retry logic.
    * @private
-   * @async
    * @param {string} url - Full URL to request
    * @param {Object} options - Fetch options
-   * @param {string} [method] - HTTP method
-   * @returns {Promise<Object>} Response data
-   * @throws {Error} If request fails after all retries
+   * @returns {Promise<Response>} Raw fetch response
    */
   async fetchWithRetry(url, options = {}) {
     let lastError = null;
@@ -85,20 +88,16 @@ export class WalrusClient {
           throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
-        const data = await response.json();
-        this.debug(`Fetch successful (attempt ${attempt})`);
-        return data;
+        return response;
 
       } catch (error) {
         lastError = error;
         this.debug(`Fetch attempt ${attempt} failed: ${error.message}`);
 
-        // Don't retry on certain errors
         if (error.name === 'AbortError') {
           throw new Error(`Request timeout after ${this.timeout}ms`);
         }
 
-        // Exponential backoff
         if (attempt < this.maxRetries) {
           const delay = this.retryDelay * Math.pow(2, attempt - 1);
           this.debug(`Waiting ${delay}ms before retry...`);
@@ -111,16 +110,12 @@ export class WalrusClient {
   }
 
   /**
-   * Store data to Walrus storage.
+   * Store data to Walrus storage via the publisher.
+   * Uses PUT /v1/blobs with raw data body.
    * @async
    * @param {any} data - Data to store (will be JSON stringified)
    * @param {Object} [options] - Storage options
-   * @param {string} [options.delegates] - Optional delegate address
    * @returns {Promise<Object>} Storage result with blob ID
-   * @throws {Error} If storage fails
-   * @example
-   * const result = await client.store({ task: 'test', data: 'example' });
-   * console.log(result.newlyCreated.blobObject.id); // Blob ID
    */
   async store(data, options = {}) {
     if (data === undefined || data === null) {
@@ -129,34 +124,44 @@ export class WalrusClient {
 
     this.debug('Storing data to Walrus...');
 
-    // Prepare the data
     const jsonBody = JSON.stringify(data);
-    const blob = new Blob([jsonBody], { type: 'application/json' });
+    const epochs = options.epochs || this.epochs;
 
     try {
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('file', blob, 'data.json');
-
-      if (options.delegates) {
-        formData.append('delegates', options.delegates);
-      }
-
-      // Upload to Walrus
-      const url = `${this.apiUrl}staging`;
+      const url = `${this.publisherUrl}/v1/blobs?epochs=${epochs}`;
       this.debug(`Uploading to: ${url}`);
 
-      const result = await this.fetchWithRetry(url, {
-        method: 'POST',
-        body: formData
+      const response = await this.fetchWithRetry(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: jsonBody
       });
 
-      if (!result || !result.newlyCreated || !result.newlyCreated.blobObject) {
-        throw new Error('Invalid response from Walrus API');
+      const result = await response.json();
+
+      // Handle the different response types from Walrus API
+      let blobId = null;
+
+      if (result.newlyCreated) {
+        blobId = result.newlyCreated.blobObject?.blobId ||
+                 result.newlyCreated.blobObject?.id ||
+                 null;
+        this.debug(`New blob created: ${blobId}`);
+      } else if (result.alreadyCertified) {
+        blobId = result.alreadyCertified.blobId ||
+                 result.alreadyCertified.blobObject?.blobId ||
+                 null;
+        this.debug(`Blob already certified: ${blobId}`);
+      } else if (result.markedInvalid) {
+        throw new Error('Blob marked as invalid by Walrus');
+      } else if (result.error) {
+        throw new Error(`Walrus API error: ${result.error.message || JSON.stringify(result.error)}`);
       }
 
-      const blobId = result.newlyCreated.blobObject.id;
-      this.debug(`Data stored successfully. Blob ID: ${blobId}`);
+      if (!blobId) {
+        this.debug('Full Walrus response:', JSON.stringify(result, null, 2));
+        throw new Error('Could not extract blob ID from Walrus response');
+      }
 
       return {
         success: true,
@@ -172,17 +177,13 @@ export class WalrusClient {
   }
 
   /**
-   * Retrieve data from Walrus storage by blob ID.
+   * Retrieve data from Walrus storage by blob ID via the aggregator.
+   * Uses GET /v1/blobs/{blob_id}.
    * @async
    * @param {string} blobId - The blob ID to retrieve
-   * @param {Object} [options] - Retrieval options
    * @returns {Promise<Object>} Retrieved data
-   * @throws {Error} If retrieval fails
-   * @example
-   * const data = await client.retrieve('blob_123456');
-   * console.log(data.task); // 'test'
    */
-  async retrieve(blobId, options = {}) {
+  async retrieve(blobId) {
     if (!blobId || typeof blobId !== 'string') {
       throw new Error('Invalid blob ID');
     }
@@ -190,41 +191,27 @@ export class WalrusClient {
     this.debug(`Retrieving data from Walrus: ${blobId}`);
 
     try {
-      // First, get the blob info to find the storage nodes
-      const infoUrl = `${this.apiUrl}staging/${blobId}`;
-      const info = await this.fetchWithRetry(infoUrl, {
+      const url = `${this.aggregatorUrl}/v1/blobs/${blobId}`;
+
+      const response = await this.fetchWithRetry(url, {
         method: 'GET'
       });
 
-      if (!info || !info.storage || !info.storage.length) {
-        throw new Error('Invalid blob info response');
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = text;
       }
 
-      // Try to retrieve from the first available storage node
-      const storageNode = info.storage[0];
-      const retrieveUrl = storageNode.endpoint;
-
-      this.debug(`Retrieving from storage node: ${retrieveUrl}`);
-
-      const response = await fetch(retrieveUrl, {
-        method: 'GET',
-        signal: AbortSignal.timeout(this.timeout)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const jsonText = await response.text();
-      const data = JSON.parse(jsonText);
-
-      this.debug(`Data retrieved successfully`);
+      this.debug('Data retrieved successfully');
 
       return {
         success: true,
         blobId,
         data,
-        size: jsonText.length
+        size: text.length
       };
 
     } catch (error) {
@@ -237,7 +224,7 @@ export class WalrusClient {
    * Check if a blob exists in Walrus storage.
    * @async
    * @param {string} blobId - The blob ID to check
-   * @returns {Promise<boolean>} True if blob exists, false otherwise
+   * @returns {Promise<boolean>} True if blob exists
    */
   async exists(blobId) {
     try {
@@ -260,18 +247,20 @@ export class WalrusClient {
     try {
       const start = Date.now();
 
-      // Try to store a small test object
+      // Store a small test object
       const testData = {
         test: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        source: 'taskhawk-connectivity-test'
       };
 
       const storeResult = await this.store(testData);
       const blobId = storeResult.blobId;
 
-      // Try to retrieve it back
-      const retrieveResult = await this.retrieve(blobId);
+      this.debug(`Test blob stored: ${blobId}`);
 
+      // Retrieve it back
+      const retrieveResult = await this.retrieve(blobId);
       const duration = Date.now() - start;
 
       // Verify data integrity

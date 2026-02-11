@@ -1,7 +1,7 @@
 /**
  * OpenClaw Browser Tool Bridge
  *
- * This module provides a bridge between Mad Sniper's BrowserController
+ * This module provides a bridge between TaskHawk's BrowserController
  * and OpenClaw's browser automation tool.
  *
  * In the OpenClaw agent environment, the browser tool is available as
@@ -215,7 +215,7 @@ function generateMockElements() {
       name: 'Main Heading',
       type: 'text',
       level: 1,
-      text: 'Mad Sniper Demo'
+      text: 'TaskHawk Demo'
     }
   };
 }

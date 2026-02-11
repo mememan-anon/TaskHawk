@@ -131,28 +131,34 @@ export class DemoRunner {
    * @param {Object} [metadata] - Additional metadata
    */
   displayProvenance(blobIds, metadata = {}) {
-    console.log(`\n╔═══════════════════════════════════════════════════════════════════╗`);
-    console.log(`║  PROVENANCE - WALRUS STORAGE                                       ║`);
-    console.log(`╠═══════════════════════════════════════════════════════════════════╣`);
+    const aggregatorUrl = process.env.WALRUS_AGGREGATOR_URL || 'https://aggregator.walrus-testnet.walrus.space';
+
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`  WALRUS DECENTRALIZED STORAGE (Sui Network)`);
+    console.log(`${'='.repeat(80)}`);
 
     if (blobIds.task) {
-      console.log(`║ Task Blob ID:  ${blobIds.task}${' '.repeat(70 - blobIds.task.length)}║`);
+      console.log(`\n  Task Blob ID:  ${blobIds.task}`);
     } else {
-      console.log(`║ Task Blob ID:  (not stored)${' '.repeat(53)}║`);
+      console.log(`\n  Task Blob ID:  (not stored)`);
     }
 
     if (blobIds.trace) {
-      console.log(`║ Trace Blob ID: ${blobIds.trace}${' '.repeat(69 - blobIds.trace.length)}║`);
+      console.log(`  Trace Blob ID: ${blobIds.trace}`);
     } else {
-      console.log(`║ Trace Blob ID: (not stored)${' '.repeat(52)}║`);
+      console.log(`  Trace Blob ID: (not stored)`);
     }
 
-    console.log(`╠═══════════════════════════════════════════════════════════════════╣`);
-    console.log(`║                                                                    ║`);
-    console.log(`║ These IDs can be used to retrieve the complete execution trace   ║`);
-    console.log(`║ from the Walrus decentralized storage network.                   ║`);
-    console.log(`║                                                                    ║`);
-    console.log(`╚═══════════════════════════════════════════════════════════════════╝\n`);
+    console.log(`\n  View your data on Walrus (click or paste in browser):\n`);
+
+    if (blobIds.task) {
+      console.log(`  Task:  ${aggregatorUrl}/v1/blobs/${blobIds.task}`);
+    }
+    if (blobIds.trace) {
+      console.log(`  Trace: ${aggregatorUrl}/v1/blobs/${blobIds.trace}`);
+    }
+
+    console.log();
   }
 
   /**
@@ -216,7 +222,7 @@ export class DemoRunner {
 
     try {
       console.log(`\n${'='.repeat(71)}`);
-      console.log(`  MAD SNIPER - DEMO RUNNER`);
+      console.log(`  TASKHAWK - DEMO RUNNER`);
       console.log(`${'='.repeat(71)}`);
 
       if (!goal) {

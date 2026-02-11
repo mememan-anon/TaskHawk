@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Mad Sniper - Autonomous Web Task Orchestrator
+ * TaskHawk - Autonomous Web Task Orchestrator
  * Main Entry Point
  */
 
@@ -48,7 +48,7 @@ function parseArgs() {
  * @param {Object} args - Parsed command-line arguments
  */
 async function runDemoMode(args) {
-  console.log(`\n🎯 Mad Sniper: Demo Mode`);
+  console.log(`\n🎯 TaskHawk: Demo Mode`);
   console.log(`   Goal: "${args.goal}"`);
 
   try {
@@ -85,7 +85,7 @@ async function main() {
   if (!args.goal) {
     console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
-║  MAD SNIPER - Autonomous Web Task Orchestrator                    ║
+║  TASKHAWK - Autonomous Web Task Orchestrator                    ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║                                                                   ║
 ║  Usage:                                                           ║
@@ -115,7 +115,7 @@ async function main() {
     return;
   }
 
-  console.log(`\n🎯 Mad Sniper: Starting execution`);
+  console.log(`\n🎯 TaskHawk: Starting execution`);
   console.log(`   Goal: "${args.goal}"`);
   console.log(`   Dry Run: ${args.dryRun ? 'Yes' : 'No'}`);
 

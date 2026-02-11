@@ -12,11 +12,10 @@ async function testDemo() {
 
   const demo = new FlightDemo({
     mockData: true,
-    verbose: true
+    verbose: false
   });
 
   // Override the createPlan method to use a mock plan
-  const originalCreatePlan = demo.createPlan.bind(demo);
   demo.createPlan = async () => {
     return {
       goalSummary: 'Find flights from SFO to JFK under $500',
@@ -65,16 +64,39 @@ async function testDemo() {
   try {
     const results = await demo.run('Find flights from SFO to JFK under $500');
 
-    console.log(`\n✅ Demo test successful!`);
-    console.log(`   Found ${results.flights.length} flights`);
-    console.log(`   Duration: ${(results.duration / 1000).toFixed(2)}s`);
+    // Print flight results table
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`  FLIGHT SEARCH RESULTS — ${results.flights.length} flights found`);
+    console.log(`  Goal: "${results.goal}"`);
+    console.log(`  Duration: ${(results.duration / 1000).toFixed(2)}s`);
+    console.log(`${'='.repeat(80)}\n`);
+
+    results.flights.forEach((flight, i) => {
+      console.log(`  #${i + 1}  ${flight.airline} ${flight.flightNumber}`);
+      console.log(`      ${flight.origin} -> ${flight.destination}`);
+      console.log(`      Depart: ${flight.departureTime}  |  Arrive: ${flight.arrivalTime}`);
+      console.log(`      Duration: ${flight.duration}  |  Stops: ${flight.stops}`);
+      console.log(`      Price: $${flight.price}  |  Aircraft: ${flight.aircraft}`);
+      console.log(`  ${'-'.repeat(50)}`);
+    });
+
+    console.log(`\n  Validation: ${results.validation.isValid ? 'All constraints satisfied' : results.validation.issues.join(', ')}`);
+
+    const aggregatorUrl = process.env.WALRUS_AGGREGATOR_URL || 'https://aggregator.walrus-testnet.walrus.space';
 
     if (results.storage.success) {
-      console.log(`   ✅ Task stored: ${results.storage.blobIds.task}`);
-      console.log(`   ✅ Trace stored: ${results.storage.blobIds.trace}`);
+      console.log(`\n${'='.repeat(80)}`);
+      console.log(`  WALRUS DECENTRALIZED STORAGE (Sui Network)`);
+      console.log(`${'='.repeat(80)}`);
+      console.log(`\n  Task Blob ID:  ${results.storage.blobIds.task}`);
+      console.log(`  Trace Blob ID: ${results.storage.blobIds.trace}`);
+      console.log(`\n  View your data on Walrus (click or paste in browser):\n`);
+      console.log(`  Task:  ${aggregatorUrl}/v1/blobs/${results.storage.blobIds.task}`);
+      console.log(`  Trace: ${aggregatorUrl}/v1/blobs/${results.storage.blobIds.trace}`);
     } else {
-      console.log(`   ⚠️  Storage: ${results.storage.error || 'Failed'}`);
+      console.log(`\n  Storage: Walrus unavailable (results shown locally)`);
     }
+    console.log();
 
     process.exit(0);
   } catch (error) {

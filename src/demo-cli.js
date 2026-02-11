@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Mad Sniper - Demo CLI Entry Point
+ * TaskHawk - Demo CLI Entry Point
  *
  * This is the main entry point for running demos with formatted output.
  */
@@ -32,7 +32,7 @@ function parseArgs() {
       parsed.verbose = true;
     } else if (args[i] === '--type' || args[i] === '-t') {
       parsed.type = args[++i];
-    } else if (args[i] === '--no-mock') {
+    } else if (args[i] === '--real' || args[i] === '--no-mock') {
       parsed.mockData = false;
     } else if (args[i] === '--help' || args[i] === '-h') {
       showUsage();
@@ -49,22 +49,23 @@ function parseArgs() {
 function showUsage() {
   console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
-║  MAD SNIPER - DEMO MODE                                           ║
+║  TASKHAWK - DEMO MODE                                           ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║                                                                   ║
 ║  Usage:                                                           ║
 ║    node src/demo-cli.js --goal "Your goal here"                   ║
-║    ./demo-flight.sh "Your goal here"                              ║
+║    node src/demo-cli.js --goal "Your goal" --real                 ║
 ║                                                                   ║
 ║  Examples:                                                        ║
-║    node src/demo-cli.js -g "Find flights from SFO to JFK under $500"║
+║    node src/demo-cli.js -g "Find flights SFO to JFK under 500"   ║
+║    node src/demo-cli.js -g "Flights NBO to JFK" --real            ║
 ║    node src/demo-cli.js -g "Search flights NYC to London" -v      ║
 ║                                                                   ║
 ║  Options:                                                         ║
 ║    -g, --goal        The goal to accomplish (required)           ║
 ║    -t, --type        Demo type (flight, hotel, etc.)             ║
 ║    -v, --verbose     Enable verbose output                        ║
-║    --no-mock         Use real browser instead of mock data        ║
+║    --real            Use real browser (Puppeteer + Google Flights)║
 ║    -h, --help        Show this help message                       ║
 ║                                                                   ║
 ╚═══════════════════════════════════════════════════════════════════╝
