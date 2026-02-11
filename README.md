@@ -1,6 +1,6 @@
 # TaskHawk - Autonomous Flight Orchestrator
 
-An AI-powered flight search agent that takes natural language queries (e.g. "Find flights from SFO to JFK under $500"), plans an execution strategy via LLM, scrapes live results from Google Flights using Puppeteer, and stores the full execution trace on Walrus (Sui Network) for verifiable on-chain provenance.
+TaskHawk is an autonomous flight orchestration agent that interprets natural-language goals, plans with an LLM, executes via local tools, Google Flights automation, or OpenClaw environments, and anchors execution traces on Sui for verifiable provenance.
 
 **Track 2: Local God Mode** — OpenClaw Hackathon on DeepSurge
 
