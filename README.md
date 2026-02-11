@@ -1,6 +1,6 @@
-# TaskHawk - Autonomous Web Task Orchestrator
+# TaskHawk - Autonomous Flight Orchestrator
 
-An intelligent system that plans and executes web-based tasks using LLM-powered decomposition, real browser automation (Puppeteer + Google Flights), and decentralized storage on Walrus (Sui Network).
+An AI-powered flight search agent that takes natural language queries (e.g. "Find flights from SFO to JFK under $500"), plans an execution strategy via LLM, scrapes live results from Google Flights using Puppeteer, and stores the full execution trace on Walrus (Sui Network) for verifiable on-chain provenance.
 
 **Track 2: Local God Mode** — OpenClaw Hackathon on DeepSurge
 
