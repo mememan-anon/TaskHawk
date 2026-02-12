@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskHawk — Autonomous Flight Search</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <span class="logo-icon">&#129413;</span>
+      <h1>TaskHawk</h1>
+    </div>
+    <p class="tagline">Autonomous Flight Orchestrator &mdash; powered by LLM planning &amp; Walrus provenance</p>
+  </header>
+
+  <!-- Search Section -->
+  <main>
+    <section class="search-section">
+      <form id="search-form">
+        <div class="search-bar">
+          <input
+            type="text"
+            id="goal-input"
+            placeholder="e.g. Find flights from NBO to JFK under $1000"
+            autocomplete="off"
+            required
+          >
+          <button type="submit" id="search-btn">Search</button>
+        </div>
+
+        <div class="options-row">
+          <label class="toggle-label">
+            <input type="checkbox" id="mode-toggle">
+            <span class="toggle-text">Real browser mode (Puppeteer)</span>
+          </label>
+        </div>
+      </form>
+
+      <!-- Example queries -->
+      <div class="examples">
+        <span class="examples-label">Try:</span>
+        <button class="chip" data-goal="Find flights from SFO to JFK under $500">SFO &rarr; JFK &lt;$500</button>
+        <button class="chip" data-goal="Find flights from NBO to LHR under $800">NBO &rarr; LHR &lt;$800</button>
+        <button class="chip" data-goal="Find flights from LAX to SYD under $1200">LAX &rarr; SYD &lt;$1200</button>
+        <button class="chip" data-goal="Find flights from JFK to CDG under $700">JFK &rarr; CDG &lt;$700</button>
+      </div>
+    </section>
+
+    <!-- Loading State -->
+    <section id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <div class="loading-phases">
+        <div class="phase" data-phase="1">Analyzing goal...</div>
+        <div class="phase" data-phase="2">Creating execution plan...</div>
+        <div class="phase" data-phase="3">Searching for flights...</div>
+        <div class="phase" data-phase="4">Validating results...</div>
+        <div class="phase" data-phase="5">Storing to Walrus...</div>
+        <div class="phase" data-phase="6">Formatting results...</div>
+      </div>
+    </section>
+
+    <!-- Error State -->
+    <section id="error" class="error-section hidden">
+      <div class="error-box">
+        <span class="error-icon">&#10060;</span>
+        <p id="error-msg"></p>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section id="results" class="results-section hidden">
+
+      <!-- Summary Bar -->
+      <div class="results-header">
+        <h2 id="results-title">Flight Results</h2>
+        <div class="results-meta">
+          <span id="results-count"></span>
+          <span id="results-duration"></span>
+          <span id="results-mode"></span>
+        </div>
+      </div>
+
+      <!-- Constraints -->
+      <div id="constraints-bar" class="constraints-bar"></div>
+
+      <!-- Flight Cards -->
+      <div id="flight-cards" class="flight-cards"></div>
+
+      <!-- Walrus Provenance -->
+      <div id="provenance" class="provenance-section hidden">
+        <h3>On-Chain Provenance (Walrus / Sui)</h3>
+        <div id="provenance-links"></div>
+      </div>
+
+      <!-- Trace Summary -->
+      <div id="trace-section" class="trace-section">
+        <h3>Execution Trace</h3>
+        <div id="trace-steps"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>TaskHawk &mdash; Built for OpenClaw Hackathon &bull; Track 2: Local God Mode</p>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

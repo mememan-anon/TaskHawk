@@ -1,0 +1,457 @@
+/* === Reset & Base === */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-dim: #8b949e;
+  --accent: #58a6ff;
+  --accent-glow: rgba(88, 166, 255, .15);
+  --green: #3fb950;
+  --orange: #d29922;
+  --red: #f85149;
+  --radius: 10px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* === Header === */
+header {
+  text-align: center;
+  padding: 2.5rem 1rem 1.5rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+}
+
+.logo-icon {
+  font-size: 2.2rem;
+}
+
+.logo h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -.5px;
+  background: linear-gradient(135deg, var(--accent), #a371f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.tagline {
+  color: var(--text-dim);
+  margin-top: .4rem;
+  font-size: .95rem;
+}
+
+/* === Main === */
+main {
+  flex: 1;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1.25rem 3rem;
+}
+
+/* === Search === */
+.search-section {
+  margin-bottom: 2rem;
+}
+
+.search-bar {
+  display: flex;
+  gap: .5rem;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: .85rem 1.1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color .2s;
+}
+
+.search-bar input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.search-bar button {
+  padding: .85rem 1.6rem;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .2s;
+}
+
+.search-bar button:hover {
+  opacity: .85;
+}
+
+.search-bar button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.options-row {
+  margin-top: .75rem;
+}
+
+.toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  color: var(--text-dim);
+  font-size: .85rem;
+  cursor: pointer;
+}
+
+.toggle-label input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+/* Chips */
+.examples {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+}
+
+.examples-label {
+  color: var(--text-dim);
+  font-size: .85rem;
+}
+
+.chip {
+  padding: .4rem .9rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: .82rem;
+  cursor: pointer;
+  transition: border-color .2s, color .2s;
+}
+
+.chip:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* === Loading === */
+.loading {
+  text-align: center;
+  padding: 2.5rem 0;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 1.5rem;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-phases {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  align-items: center;
+}
+
+.phase {
+  color: var(--text-dim);
+  font-size: .9rem;
+  transition: color .3s;
+}
+
+.phase.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.phase.done {
+  color: var(--green);
+}
+
+/* === Error === */
+.error-section {
+  margin: 1rem 0;
+}
+
+.error-box {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--red);
+  background: rgba(248, 81, 73, .08);
+}
+
+.error-icon {
+  font-size: 1.3rem;
+}
+
+#error-msg {
+  color: var(--red);
+  font-size: .95rem;
+}
+
+/* === Results === */
+.results-section {
+  animation: fadeIn .4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+
+.results-header h2 {
+  font-size: 1.3rem;
+}
+
+.results-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: .82rem;
+  color: var(--text-dim);
+}
+
+.results-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+}
+
+/* Constraints bar */
+.constraints-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-bottom: 1.25rem;
+}
+
+.constraint-tag {
+  padding: .3rem .7rem;
+  border-radius: 6px;
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-size: .8rem;
+  font-weight: 500;
+}
+
+/* Flight Cards */
+.flight-cards {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.flight-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: border-color .2s;
+}
+
+.flight-card:hover {
+  border-color: var(--accent);
+}
+
+.flight-card .rank {
+  grid-column: 1 / -1;
+  font-size: .75rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: -.4rem;
+}
+
+.flight-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem .9rem;
+  align-items: baseline;
+}
+
+.flight-airline {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.flight-number {
+  color: var(--text-dim);
+  font-size: .85rem;
+}
+
+.flight-route {
+  font-size: .95rem;
+}
+
+.flight-times {
+  font-size: .85rem;
+  color: var(--text-dim);
+}
+
+.flight-details {
+  font-size: .8rem;
+  color: var(--text-dim);
+}
+
+.flight-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--green);
+  align-self: center;
+  white-space: nowrap;
+}
+
+/* Provenance */
+.provenance-section {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.provenance-section h3 {
+  font-size: .95rem;
+  margin-bottom: .75rem;
+  color: var(--orange);
+}
+
+.provenance-link {
+  display: block;
+  margin-bottom: .4rem;
+  font-size: .82rem;
+  word-break: break-all;
+}
+
+.provenance-link a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.provenance-link a:hover {
+  text-decoration: underline;
+}
+
+.provenance-label {
+  color: var(--text-dim);
+  margin-right: .3rem;
+}
+
+/* Trace */
+.trace-section {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.trace-section h3 {
+  font-size: .95rem;
+  margin-bottom: .75rem;
+}
+
+.trace-step {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .3rem 0;
+  font-size: .82rem;
+  color: var(--text-dim);
+}
+
+.trace-step .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot.success { background: var(--green); }
+.dot.warning { background: var(--orange); }
+.dot.error   { background: var(--red); }
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: var(--text-dim);
+  font-size: .8rem;
+  border-top: 1px solid var(--border);
+}
+
+/* Utilities */
+.hidden {
+  display: none !important;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .search-bar {
+    flex-direction: column;
+  }
+
+  .flight-card {
+    grid-template-columns: 1fr;
+  }
+
+  .flight-price {
+    justify-self: start;
+  }
+
+  .results-header {
+    flex-direction: column;
+  }
+}
