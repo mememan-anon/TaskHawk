@@ -121,17 +121,30 @@ main {
   margin-top: .75rem;
 }
 
-.toggle-label {
-  display: inline-flex;
+.options-row {
+  display: flex;
   align-items: center;
-  gap: .5rem;
-  color: var(--text-dim);
-  font-size: .85rem;
-  cursor: pointer;
+  gap: .6rem;
 }
 
-.toggle-label input[type="checkbox"] {
-  accent-color: var(--accent);
+.mode-label {
+  color: var(--text-dim);
+  font-size: .85rem;
+}
+
+#mode-select {
+  padding: .4rem .7rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: .85rem;
+  cursor: pointer;
+  outline: none;
+}
+
+#mode-select:focus {
+  border-color: var(--accent);
 }
 
 /* Chips */

@@ -5,7 +5,7 @@
 const form = document.getElementById('search-form');
 const goalInput = document.getElementById('goal-input');
 const searchBtn = document.getElementById('search-btn');
-const modeToggle = document.getElementById('mode-toggle');
+const modeSelect = document.getElementById('mode-select');
 
 const loadingEl = document.getElementById('loading');
 const errorEl = document.getElementById('error');
@@ -90,7 +90,8 @@ function renderResults(data) {
   resultsTitle.textContent = `Flights: ${data.constraints.origin || '?'} \u2192 ${data.constraints.destination || '?'}`;
   resultsCount.textContent = `${data.flights.length} flights`;
   resultsDuration.textContent = `${(data.duration / 1000).toFixed(1)}s`;
-  resultsMode.textContent = data.mode === 'real' ? 'Live' : 'Mock';
+  const modeLabels = { api: 'Live (API)', mock: 'Mock', browser: 'Live (Browser)' };
+  resultsMode.textContent = modeLabels[data.mode] || data.mode;
 
   // Constraints
   constraintsBar.innerHTML = '';
@@ -200,7 +201,7 @@ form.addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         goal,
-        mode: modeToggle.checked ? 'real' : 'mock'
+        mode: modeSelect.value
       })
     });
 

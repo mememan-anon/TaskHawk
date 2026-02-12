@@ -47,13 +47,15 @@ app.post('/api/search', async (req, res) => {
     return res.status(500).json({ error: 'Server missing OPENAI_API_KEY. Set it in .env.' });
   }
 
-  const useMock = mode !== 'real';
+  // mode: 'mock' (default), 'api' (SerpApi real prices), 'real' (Puppeteer browser)
+  const execMode = mode === 'api' ? 'api' : mode === 'real' ? 'browser' : 'mock';
 
   const demo = new FlightDemo({
     apiKey: process.env.OPENAI_API_KEY,
     model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
     verbose: false,
-    mockData: useMock
+    mode: execMode,
+    headless: true
   });
 
   try {
@@ -69,7 +71,7 @@ app.post('/api/search', async (req, res) => {
       storage: results.storage,
       blobIds: results.blobIds,
       duration: results.duration,
-      mode: useMock ? 'mock' : 'real'
+      mode: execMode
     });
   } catch (err) {
     console.error('Search failed:', err.message);

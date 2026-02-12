@@ -33,10 +33,11 @@
         </div>
 
         <div class="options-row">
-          <label class="toggle-label">
-            <input type="checkbox" id="mode-toggle">
-            <span class="toggle-text">Real browser mode (Puppeteer)</span>
-          </label>
+          <label class="mode-label" for="mode-select">Data source:</label>
+          <select id="mode-select">
+            <option value="api">Live Prices (Google Flights API)</option>
+            <option value="mock">Mock Data (demo)</option>
+          </select>
         </div>
       </form>
 

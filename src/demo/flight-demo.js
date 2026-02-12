@@ -9,7 +9,12 @@ import { TaskPlanner } from '../planner/index.js';
 import { ActionExecutor } from '../executor/index.js';
 import { PersistentLogger } from '../logger/index.js';
 import { parseConstraints, detectGoalType, validateGoal } from '../utils/parsers.js';
-import { searchGoogleFlights } from '../executor/flights-browser.js';
+
+// Dynamic import — Puppeteer is huge and not available on serverless platforms
+async function loadFlightsBrowser() {
+  const mod = await import('../executor/flights-browser.js');
+  return mod.searchGoogleFlights;
+}
 
 /**
  * FlightDemo class for demonstrating end-to-end flight search.
@@ -28,7 +33,18 @@ export class FlightDemo {
     this.apiKey = options.apiKey || process.env.OPENAI_API_KEY;
     this.model = options.model || process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
     this.verbose = options.verbose || false;
-    this.useMockData = options.mockData !== false; // Default to mock for demo
+    this.headless = options.headless !== undefined ? options.headless : true;
+
+    // Execution mode: 'mock', 'api' (SerpApi), or 'browser' (Puppeteer)
+    if (options.mode === 'api') {
+      this.execMode = 'api';
+    } else if (options.mockData === false || options.mode === 'browser') {
+      this.execMode = 'browser';
+    } else {
+      this.execMode = 'mock';
+    }
+    // Keep legacy property for backward compat
+    this.useMockData = this.execMode === 'mock';
 
     // Initialize components
     this.planner = new TaskPlanner({
@@ -141,14 +157,15 @@ export class FlightDemo {
 
     this.logger.setState('executing');
 
-    if (this.useMockData) {
-      // Use mock data for demo purposes
-      this.debug('Using mock flight data');
-      return await this.executeWithMockData(constraints);
-    } else {
-      // Execute with real browser via Puppeteer + Google Flights
+    if (this.execMode === 'api') {
+      this.debug('Using SerpApi (Google Flights API)');
+      return await this.executeWithApi(constraints);
+    } else if (this.execMode === 'browser') {
       this.debug('Executing with real browser (Google Flights)');
       return await this.executeWithRealBrowser(constraints);
+    } else {
+      this.debug('Using mock flight data');
+      return await this.executeWithMockData(constraints);
     }
   }
 
@@ -166,11 +183,12 @@ export class FlightDemo {
     console.log(`   🌐 Launching Chrome browser...`);
     console.log(`   🔍 Searching Google Flights: ${origin} → ${destination}`);
 
+    const searchGoogleFlights = await loadFlightsBrowser();
     const result = await searchGoogleFlights({
       origin,
       destination,
       maxPrice,
-      headless: false,
+      headless: this.headless,
       verbose: this.verbose
     });
 
@@ -191,6 +209,54 @@ export class FlightDemo {
     );
 
     return result.flights;
+  }
+
+  /**
+   * Execute with SerpApi Google Flights API (real prices, no browser needed).
+   * @private
+   * @param {Object} constraints - Search constraints
+   * @returns {Promise<Array>} Array of real flight options from API
+   */
+  async executeWithApi(constraints) {
+    const origin = constraints.origin || 'SFO';
+    const destination = constraints.destination || 'JFK';
+    const maxPrice = constraints.maxPrice || null;
+
+    console.log(`   🔌 Calling Google Flights API: ${origin} → ${destination}`);
+
+    try {
+      const { searchFlightsApi } = await import('../executor/flights-api.js');
+      const result = await searchFlightsApi({
+        origin,
+        destination,
+        maxPrice,
+        verbose: this.verbose
+      });
+
+      if (!result.success || result.flights.length === 0) {
+        console.log(`   ⚠️  API returned no results, falling back to mock data`);
+        return await this.executeWithMockData(constraints);
+      }
+
+      console.log(`   ✓ Found ${result.flights.length} real flights via API`);
+
+      if (result.priceInsights) {
+        const pi = result.priceInsights;
+        if (pi.lowest_price) console.log(`   💰 Lowest: $${pi.lowest_price} (${pi.price_level || 'unknown'} price level)`);
+      }
+
+      this.logger.logStep(
+        { name: 'search_flights_api', type: 'extract' },
+        { totalFound: result.allFlights.length, matchingConstraints: result.flights.length, source: 'serpapi-google-flights' },
+        'success'
+      );
+
+      return result.flights;
+    } catch (err) {
+      console.log(`   ⚠️  API call failed: ${err.message}`);
+      console.log(`   ⚠️  Falling back to mock data`);
+      return await this.executeWithMockData(constraints);
+    }
   }
 
   /**
@@ -226,6 +292,14 @@ export class FlightDemo {
       'JFK-CDG': { prices: [550, 650, 720, 800, 880], duration: '7h 30m', airlines: ['Air France', 'Delta', 'United', 'American', 'Lufthansa'] },
       'LAX-SYD': { prices: [900, 1050, 1180, 1300, 1450], duration: '15h 30m', airlines: ['Qantas', 'United', 'Delta', 'American', 'Air New Zealand'] },
       'JFK-DXB': { prices: [720, 850, 950, 1080, 1200], duration: '12h 30m', airlines: ['Emirates', 'Qatar Airways', 'Delta', 'United', 'Etihad'] },
+      'NBO-EBB': { prices: [85, 120, 150, 180, 220], duration: '1h 10m', airlines: ['Kenya Airways', 'Uganda Airlines', 'Jambojet', 'FlySax', 'Ethiopian'] },
+      'EBB-NBO': { prices: [80, 115, 145, 175, 210], duration: '1h 05m', airlines: ['Uganda Airlines', 'Kenya Airways', 'Jambojet', 'Ethiopian', 'RwandAir'] },
+      'NBO-ADD': { prices: [180, 220, 260, 310, 380], duration: '2h 15m', airlines: ['Ethiopian', 'Kenya Airways', 'FlySax', 'Jambojet', 'RwandAir'] },
+      'NBO-DAR': { prices: [90, 130, 160, 200, 250], duration: '1h 20m', airlines: ['Kenya Airways', 'Precision Air', 'FastJet', 'Ethiopian', 'RwandAir'] },
+      'NBO-KGL': { prices: [120, 160, 200, 240, 290], duration: '1h 40m', airlines: ['Kenya Airways', 'RwandAir', 'Ethiopian', 'Jambojet', 'Uganda Airlines'] },
+      'NBO-JNB': { prices: [350, 420, 480, 550, 640], duration: '4h 10m', airlines: ['Kenya Airways', 'South African', 'Ethiopian', 'Emirates', 'FlySafair'] },
+      'NBO-LOS': { prices: [380, 450, 520, 600, 700], duration: '5h 30m', airlines: ['Kenya Airways', 'Ethiopian', 'Emirates', 'Turkish Airlines', 'RwandAir'] },
+      'NBO-ACC': { prices: [340, 410, 470, 540, 630], duration: '5h 45m', airlines: ['Kenya Airways', 'Ethiopian', 'Emirates', 'Turkish Airlines', 'South African'] },
     };
 
     // Estimate route type for unknown routes
@@ -258,16 +332,33 @@ export class FlightDemo {
       aircraft: ['Boeing 787', 'Airbus A350', 'Boeing 777', 'Airbus A321', 'Boeing 737'][idx]
     }));
 
-    // Filter by max price
-    const filteredFlights = flights.filter(f => f.price <= maxPrice);
+    // Filter by max price if a constraint was specified
+    if (constraints.maxPrice) {
+      const filteredFlights = flights.filter(f => f.price <= maxPrice);
+
+      this.logger.logStep(
+        { name: 'search_flights', type: 'extract' },
+        { totalFound: flights.length, matchingConstraints: filteredFlights.length },
+        filteredFlights.length > 0 ? 'success' : 'warning'
+      );
+
+      if (filteredFlights.length > 0) {
+        return filteredFlights;
+      }
+
+      // No flights match the budget — return cheapest options sorted by price
+      // and mark them so the frontend can show a "no exact match" notice
+      const sorted = [...flights].sort((a, b) => a.price - b.price);
+      return sorted.slice(0, 3);
+    }
 
     this.logger.logStep(
       { name: 'search_flights', type: 'extract' },
-      { totalFound: flights.length, matchingConstraints: filteredFlights.length },
+      { totalFound: flights.length, matchingConstraints: flights.length },
       'success'
     );
 
-    return filteredFlights.length > 0 ? filteredFlights : flights.slice(0, 3);
+    return flights;
   }
 
   /**
